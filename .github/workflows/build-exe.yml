@@ -25,3 +25,9 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         release: false
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: All-in-One-Business-Suite-EXE
+        path: dist/*.exe
