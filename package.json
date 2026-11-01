@@ -1,7 +1,7 @@
 {
-  "name": "texas-intech-toolbox",
+  "name": "all-in-one-business-suite",
   "version": "1.0.0",
-  "description": "All-in-One Dashboard Launcher",
+  "description": "All-in-One Dashboard Launcher for Business Tools",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
