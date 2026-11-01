@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบกรอกและพิมพ์ใบมอบอำนาจ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Sarabun', sans-serif;
+    }
+    body {
+      background-color: #f3f4f6;
+      margin: 0;
+      padding: 15px;
+      color: #000;
+    }
+    
+    /* ส่วนควบคุมบนหน้าจอ */
+    .controls {
+      max-width: 800px;
+      margin: 0 auto 15px auto;
+      background: #ffffff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .controls h2 {
+      margin: 0;
+      color: #1e3a8a;
+      font-size: 18px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+    .btn-print {
+      background-color: #16a34a;
+      color: white;
+    }
+    .btn-print:hover {
+      background-color: #15803d;
+    }
+    .btn-reset {
+      background-color: #dc2626;
+      color: white;
+      margin-left: 8px;
+    }
+    .btn-reset:hover {
+      background-color: #b91c1c;
+    }
+
+    /* ขนาดกระดาษ A4 */
+    .paper {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 12mm 15mm 12mm 15mm;
+      margin: 0 auto;
+      background: white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      font-size: 12pt;
+      line-height: 1.5;
+    }
+
+    /* หัวเอกสาร */
+    .header {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 20pt;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    /* สไตล์บรรทัดและช่องกรอก */
+    .line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      margin-bottom: 3px;
+    }
+    .align-right-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      width: 100%;
+      margin-bottom: 5px;
+    }
+    .align-right-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: baseline;
+      width: 100%;
+      margin-bottom: 3px;
+    }
+    .indent {
+      text-indent: 2cm;
+    }
+
+    input[type="text"] {
+      border: none;
+      border-bottom: 1px dotted #444;
+      background: transparent;
+      outline: none;
+      font-family: 'Sarabun', sans-serif;
+      font-size: 12pt;
+      padding: 0 4px;
+      color: #000080;
+      text-align: center;
+    }
+    input[type="text"]:focus {
+      border-bottom: 1px solid #000;
+      background-color: #f0f9ff;
+    }
+
+    .textarea-box {
+      width: 100%;
+      min-height: 60px;
+      border: 1px dotted #bbb;
+      padding: 6px;
+      font-size: 12pt;
+      line-height: 1.4;
+      outline: none;
+      resize: vertical;
+      color: #000080;
+      margin: 4px 0;
+    }
+
+    /* ส่วนลายเซ็น: ขยับเซ็ตทั้งหมดลงมาจากข้อความด้านบนให้มีระยะห่างสวยงาม */
+    .signatures {
+      margin-top: 70px; /* เพิ่มระยะห่างจากข้อความด้านบน */
+      width: 100%;
+    }
+    .sig-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 55px; /* ระยะห่างระหว่างแถวผู้มอบกับแถวพยาน */
+    }
+    .sig-box {
+      width: 47%;
+      text-align: center;
+      font-size: 11.5pt;
+    }
+    .sig-line-area {
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start;
+      white-space: nowrap;
+      margin-bottom: 2px;
+    }
+    .sig-dots {
+      border-bottom: 1px dotted #444;
+      flex-grow: 1;
+      margin: 0 5px;
+      height: 1em;
+    }
+    .sig-space {
+      height: 15px; /* รักษาระยะวงเล็บชื่อให้ชิดบรรทัดบนตามที่ต้องการ */
+    }
+    .sig-name-wrap {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      white-space: nowrap;
+    }
+
+    /* สำหรับการพิมพ์ผ่านเครื่องพิมพ์ / ออกเป็น PDF */
+    @media print {
+      body {
+        background: none;
+        padding: 0;
+      }
+      .controls {
+        display: none !important;
+      }
+      .paper {
+        box-shadow: none;
+        margin: 0;
+        width: 100%;
+        height: auto;
+        padding: 10mm 12mm 10mm 12mm;
+        font-size: 12pt;
+        line-height: 1.5;
+      }
+      input[type="text"], .textarea-box {
+        border-bottom: none !important;
+        color: #000 !important;
+        font-size: 12pt;
+      }
+      .textarea-box {
+        border: none !important;
+      }
+      @page {
+        size: A4;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- แถบควบคุม -->
+  <div class="controls">
+    <h2>📄 ระบบพิมพ์ใบมอบอำนาจ (เลื่อนเซ็ตลายเซ็นลงมาห่างจากข้อความแล้ว)</h2>
+    <div>
+      <button class="btn btn-print" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+      <button class="btn btn-reset" onclick="resetForm()">🔄 ล้างข้อมูล</button>
+    </div>
+  </div>
+
+  <!-- กระดาษ A4 -->
+  <div class="paper">
+    <div class="header">
+      <h1>ใบมอบอำนาจ</h1>
+    </div>
+
+    <!-- ส่วน "ทำที่" และ "วันที่" -->
+    <div class="align-right-group">
+      <div class="align-right-row">
+        ทำที่&nbsp;<input type="text" style="width: 320px;" id="place" placeholder="บ้านเลขที่ / สถานที่ทำเอกสาร">
+      </div>
+      <div class="align-right-row">
+        วันที่&nbsp;<input type="text" style="width: 45px;" id="day">&nbsp;
+        เดือน&nbsp;<input type="text" style="width: 120px;" id="month">&nbsp;
+        พ.ศ.&nbsp;<input type="text" style="width: 75px;" id="year">
+      </div>
+    </div>
+
+    <div class="line" style="margin-top: 4px;">
+      <span class="indent">โดยหนังสือฉบับนี้ ข้าพเจ้า</span>&nbsp;<input type="text" style="width: 270px;" id="authorizer_name" placeholder="ชื่อ-นามสกุล ผู้มอบอำนาจ">&nbsp;
+      อายุ&nbsp;<input type="text" style="width: 45px;" id="authorizer_age" placeholder="60">&nbsp;ปี&nbsp;
+      สัญชาติ&nbsp;<input type="text" style="width: 65px;" id="authorizer_nat" value="ไทย">
+    </div>
+    <div class="line">
+      ถือบัตรประจำตัวประชาชนเลขที่&nbsp;<input type="text" style="width: 240px;" id="authorizer_id" placeholder="x-xxxx-xxxxx-xx-x">&nbsp;
+      อยู่บ้านเลขที่&nbsp;<input type="text" style="width: 90px;" id="authorizer_no" placeholder="190/2">
+    </div>
+    <div class="line">
+      หมู่ที่&nbsp;<input type="text" style="width: 45px;" id="authorizer_moo" placeholder="9">&nbsp;
+      ตำบล/แขวง&nbsp;<input type="text" style="width: 150px;" id="authorizer_sub" placeholder="เทพนคร">&nbsp;
+      อำเภอ/เขต&nbsp;<input type="text" style="width: 150px;" id="authorizer_dist" placeholder="เมือง">&nbsp;
+      จังหวัด&nbsp;<input type="text" style="width: 150px;" id="authorizer_prov" placeholder="กำแพงเพชร">
+    </div>
+
+    <div class="line" style="margin-top: 4px;">
+      ขอมอบอำนาจให้&nbsp;<input type="text" style="width: 290px;" id="attorney_name" placeholder="ชื่อ-นามสกุล ผู้รับมอบอำนาจ">&nbsp;
+      อายุ&nbsp;<input type="text" style="width: 45px;" id="attorney_age">&nbsp;ปี&nbsp;
+      สัญชาติ&nbsp;<input type="text" style="width: 65px;" id="attorney_nat" value="ไทย">
+    </div>
+    <div class="line">
+      ถือบัตรประจำตัวประชาชนเลขที่&nbsp;<input type="text" style="width: 240px;" id="attorney_id" placeholder="x-xxxx-xxxxx-xx-x">&nbsp;
+      อยู่บ้านเลขที่&nbsp;<input type="text" style="width: 90px;" id="attorney_no">
+    </div>
+    <div class="line">
+      หมู่ที่&nbsp;<input type="text" style="width: 45px;" id="attorney_moo">&nbsp;
+      ตำบล/แขวง&nbsp;<input type="text" style="width: 150px;" id="attorney_sub">&nbsp;
+      อำเภอ/เขต&nbsp;<input type="text" style="width: 150px;" id="attorney_dist">&nbsp;
+      จังหวัด&nbsp;<input type="text" style="width: 150px;" id="attorney_prov">
+    </div>
+
+    <div style="margin-top: 4px;">
+      เป็นผู้มีอำนาจทำการแทนข้าพเจ้าในกิจการ ดังต่อไปนี้:
+    </div>
+
+    <div contenteditable="true" class="textarea-box" id="purpose" placeholder="ระบุเรื่องที่มอบอำนาจ เช่น ติดต่อยื่นคำขอรับใบอนุญาต... / ยื่นเอกสารต่อเจ้าหน้าที่..."></div>
+
+    <div style="margin-top: 4px;">
+      <span class="indent">การใดที่ผู้รับมอบอำนาจได้กระทำไปภายในขอบเขตแห่งหนังสือนี้ ให้ถือว่าข้าพเจ้าได้กระทำด้วยตนเองทุกประการ เพื่อเป็นหลักฐานข้าพเจ้าจึงได้ลงลายมือชื่อไว้เป็นสำคัญต่อหน้าพยาน</span>
+    </div>
+
+    <!-- ส่วนลายเซ็นที่เลื่อนลงมาห่างจากข้อความด้านบนอย่างสวยงาม -->
+    <div class="signatures">
+      <!-- แถวที่ 1: ผู้มอบอำนาจ & ผู้รับมอบอำนาจ -->
+      <div class="sig-row">
+        <!-- ผู้มอบอำนาจ -->
+        <div class="sig-box">
+          <div class="sig-line-area">
+            <span>ลงชื่อ</span><span class="sig-dots"></span><span>ผู้มอบอำนาจ</span>
+          </div>
+          <div class="sig-space"></div>
+          <div class="sig-name-wrap">
+            <span>(&nbsp;</span><input type="text" style="width: 200px; font-size:11.5pt;" id="sig_auth_name" placeholder="พิมพ์ชื่อ-นามสกุล"><span>&nbsp;)</span>
+          </div>
+        </div>
+        <!-- ผู้รับมอบอำนาจ -->
+        <div class="sig-box">
+          <div class="sig-line-area">
+            <span>ลงชื่อ</span><span class="sig-dots"></span><span>ผู้รับมอบอำนาจ</span>
+          </div>
+          <div class="sig-space"></div>
+          <div class="sig-name-wrap">
+            <span>(&nbsp;</span><input type="text" style="width: 200px; font-size:11.5pt;" id="sig_att_name" placeholder="พิมพ์ชื่อ-นามสกุล"><span>&nbsp;)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- แถวที่ 2: พยานคนที่ 1 & พยานคนที่ 2 -->
+      <div class="sig-row">
+        <!-- พยาน 1 -->
+        <div class="sig-box">
+          <div class="sig-line-area">
+            <span>ลงชื่อ</span><span class="sig-dots"></span><span>พยาน</span>
+          </div>
+          <div class="sig-space"></div>
+          <div class="sig-name-wrap">
+            <span>(&nbsp;</span><input type="text" style="width: 200px; font-size:11.5pt;" placeholder="พิมพ์ชื่อ-นามสกุล พยาน"><span>&nbsp;)</span>
+          </div>
+        </div>
+        <!-- พยาน 2 -->
+        <div class="sig-box">
+          <div class="sig-line-area">
+            <span>ลงชื่อ</span><span class="sig-dots"></span><span>พยาน</span>
+          </div>
+          <div class="sig-space"></div>
+          <div class="sig-name-wrap">
+            <span>(&nbsp;</span><input type="text" style="width: 200px; font-size:11.5pt;" placeholder="พิมพ์ชื่อ-นามสกุล พยาน"><span>&nbsp;)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ดึงวันที่ปัจจุบันมาลงให้อัตโนมัติ
+    window.onload = function() {
+      const today = new Date();
+      const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+      
+      document.getElementById('day').value = today.getDate();
+      document.getElementById('month').value = thaiMonths[today.getMonth()];
+      document.getElementById('year').value = today.getFullYear() + 543;
+    };
+
+    // ลิงก์ชื่อผู้มอบและผู้รับมอบอำนาจลงในช่องลายเซ็นให้อัตโนมัติ
+    document.getElementById('authorizer_name').addEventListener('input', function() {
+      document.getElementById('sig_auth_name').value = this.value;
+    });
+    document.getElementById('attorney_name').addEventListener('input', function() {
+      document.getElementById('sig_att_name').value = this.value;
+    });
+
+    function resetForm() {
+      if (confirm("ต้องการล้างข้อมูลทั้งหมดใช่หรือไม่?")) {
+        const inputs = document.querySelectorAll('input[type="text"]');
+        inputs.forEach(input => {
+          if (input.id !== 'authorizer_nat' && input.id !== 'attorney_nat') {
+            input.value = '';
+          }
+        });
+        document.getElementById('purpose').innerText = '';
+      }
+    }
+  </script>
+</body>
+</html>
